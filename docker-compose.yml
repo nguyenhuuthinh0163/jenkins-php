@@ -1,0 +1,70 @@
+version: '2'
+services:
+    # jenkins:
+    #     container_name: jenkins
+    #     build: 
+    #         context: ./jenkins/
+    #     privileged: true
+    #     ports: 
+    #         - '80:8080'
+    #         - '50000:50000'
+    #     volumes: 
+    #         - './jenkins_home:/var/jenkins_home'
+    #         - '/var/run/docker.sock:/var/run/docker.sock'
+    #         - '/usr/local/bin/docker:/usr/bin/docker'
+
+    jenkins:
+        image: jenkins/jenkins:lts
+        privileged: true
+        user: root
+        ports:
+            - 8081:8080
+            - 50000:50000
+        container_name: jenkins
+        volumes:
+            - ~/jenkins:/var/jenkins_home
+            - /var/run/docker.sock:/var/run/docker.sock
+            - /usr/local/bin/docker:/usr/local/bin/docker
+    web:
+        container_name: fuel_web
+        build:
+            context: ./nginx/
+            dockerfile: Dockerfile
+        volumes:
+            - ./www:/var/www
+        ports:
+            - "9080:80"
+        links:
+            - app
+    app:
+        container_name: fuel_app
+        build: 
+            context: ./php7/
+            dockerfile: Dockerfile
+        volumes:
+            - ./www:/var/www
+            - ./tmp/mysqld:/var/run/mysqld
+        links:
+            - mysql
+            - redis
+    mysql:
+        container_name: fuel_mysql
+        restart: always
+        image: mysql:latest
+        volumes:
+            - ./mysql:/var/lib/mysql
+            - ./tmp/mysqld:/var/run/mysqld
+        environment:
+            - "MYSQL_DATABASE=fuel_demo"
+            - "MYSQL_ROOT_PASSWORD=12345678"
+        ports:
+            - "13306:3306"
+    redis:
+        container_name: fuel_redis
+        restart: always
+        image: redis:latest
+        volumes:
+            - ./redis:/data
+        ports:
+            - "16379:6379"
+        command: redis-server --appendonly yes
